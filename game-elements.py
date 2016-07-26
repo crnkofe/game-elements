@@ -26,6 +26,7 @@ class GameElements(object):
             if self.menu.show:
                 self.menu.handle_event(event)
 
+        self.screen.fill((20, 20, 20))
         self.menu.draw()
         pygame.display.update()
 
@@ -48,7 +49,7 @@ class Menu(object):
     def __init__(self, screen):
         self.screen = screen
         self.fonts = {}
-        self.title_text = 'Game Elements'
+        self.title_text = '*** Game Elements ***'
         self.title = self._font(40).render(self.title_text, 1, (240, 240, 240))
         self.show = True
         self.choices = self._choices()
@@ -65,8 +66,8 @@ class Menu(object):
 
     def _choices(self):
         return [
-            Choice('2d idle animation', None, self._font(20)),
-            Choice('Quit', None, self._font(20)),
+            Choice('2d idle animation', None, self._font(40)),
+            Choice('Quit', None, self._font(40)),
         ]
 
     def handle_event(self, event):
