@@ -1,8 +1,16 @@
 import pygame, sys
+import util
 from pygame.locals import *
+
+from animation import animate2d
 
 # SETTINGS
 width, height = 800, 600
+
+
+def end():
+    pygame.quit()
+    sys.exit()
 
 
 class GameElements(object):
@@ -12,27 +20,37 @@ class GameElements(object):
         self.screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption('game-elements')
         self.menu = Menu(self.screen)
+        self.elapsed = 0
+        self.clock = pygame.time.Clock()
+        self.displays = {}
+        self.current_display = self.menu
+
+    def switch_display(self, id):
+        self.current_display.show = False
+        if id == util.Displays.MENU:
+            self.current_display = Menu(self.screen)
+        elif id == util.Displays.ANIM2D:
+            self.current_display = animate2d.Animation(self.screen)
+
+        self.current_display.show = True
 
     def loop(self):
+        self.elapsed = self.clock.tick(60)
         for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
-
-            if self.menu.show:
-                self.menu.handle_event(event)
+            if event.type == util.Events.SWITCH:
+                self.switch_display(event.screen)
+            if self.current_display.show:
+                self.current_display.handle_event(event)
 
         self.screen.fill((20, 20, 20))
-        self.menu.draw()
+        self.current_display.draw(self.elapsed)
         pygame.display.update()
+        pygame.display.flip()
 
 
 class Choice(object):
-    def __init__(self, name, path, font):
+    def __init__(self, id, name, path, font):
+        self.id = id
         self.name = name
         self.path = path
         self.font = font
@@ -47,6 +65,7 @@ class Choice(object):
 class Menu(object):
 
     def __init__(self, screen):
+        self.id = util.Displays.MENU
         self.screen = screen
         self.fonts = {}
         self.title_text = '*** Game Elements ***'
@@ -66,11 +85,17 @@ class Menu(object):
 
     def _choices(self):
         return [
-            Choice('2d idle animation', None, self._font(40)),
-            Choice('Quit', None, self._font(40)),
+            Choice(util.Displays.ANIM2D, '2d idle animation', None, self._font(40)),
+            Choice(None, 'Quit', None, self._font(40)),
         ]
 
     def handle_event(self, event):
+        if event.type == QUIT:
+            end()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                end()
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_DOWN:
                 self.next()
@@ -80,6 +105,8 @@ class Menu(object):
                 if self.selected_index == len(self.choices) - 1:
                     pygame.quit()
                     sys.exit()
+                else:
+                    util.switch(self.choices[self.selected_index].id)
 
     def next(self):
         self.selected_index = (self.selected_index + 1) % len(self.choices)
@@ -87,7 +114,7 @@ class Menu(object):
     def previous(self):
         self.selected_index = (self.selected_index - 1) % len(self.choices)
 
-    def draw(self):
+    def draw(self, elapsed):
         title_width, title_height = self._font(40).size(self.title_text)
         self.screen.blit(self.title, (width / 2 - title_width / 2, 100))
 
