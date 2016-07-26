@@ -33,6 +33,9 @@ class Animation(object):
             self._load_transform(os.path.join(directory, filename))
             for filename in files]
 
+        pygame.mixer.music.load(os.path.join('./assets/music', 'nyan.ogg'))
+        pygame.mixer.music.play(-1)
+
         self.animation_progress = 0
         self.total_animation_length = 1 #  in seconds
         self.files = []
@@ -45,10 +48,12 @@ class Animation(object):
 
     def handle_event(self, event):
         if event.type == QUIT:
+            pygame.mixer.music.stop()
             util.switch(util.Displays.MENU)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-               util.switch(util.Displays.MENU)
+                pygame.mixer.music.stop()
+                util.switch(util.Displays.MENU)
 
     def draw(self, elapsed):
         self.animation_progress = (self.animation_progress + elapsed) % \

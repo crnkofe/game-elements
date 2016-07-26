@@ -16,7 +16,9 @@ def end():
 class GameElements(object):
 
     def __init__(self):
+        pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.init()
+        pygame.mixer.init()
         self.screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption('game-elements')
         self.menu = Menu(self.screen)
