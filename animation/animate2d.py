@@ -41,7 +41,6 @@ class Animation(object):
         self.files = []
         self.shown = False
 
-
     def _load_transform(self, full_path):
         image = pygame.image.load(full_path)
         return pygame.transform.scale(image, (800, 600))
