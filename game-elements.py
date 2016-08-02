@@ -3,6 +3,7 @@ import util
 from pygame.locals import *
 
 from animation import animate2d
+from picking import colorpicker
 
 # SETTINGS
 width, height = 800, 600
@@ -33,7 +34,8 @@ class GameElements(object):
             self.current_display = Menu(self.screen)
         elif id == util.Displays.ANIM2D:
             self.current_display = animate2d.Animation(self.screen)
-
+        elif id == util.Displays.COLORPICKER:
+            self.current_display = colorpicker.ColorPicker(self.screen)
         self.current_display.show = True
 
     def loop(self):
@@ -88,6 +90,7 @@ class Menu(object):
     def _choices(self):
         return [
             Choice(util.Displays.ANIM2D, '2d idle animation', None, self._font(40)),
+            Choice(util.Displays.COLORPICKER, 'Color picking demo', None, self._font(40)),
             Choice(None, 'Quit', None, self._font(40)),
         ]
 

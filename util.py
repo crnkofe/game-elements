@@ -8,6 +8,7 @@ class Events(object):
 class Displays(object):
     MENU = 1
     ANIM2D = 2
+    COLORPICKER = 3
 
 
 def switch(screen_name):
