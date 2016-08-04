@@ -55,11 +55,15 @@ class Animation(object):
             "n1-l_0.png",
             "n1-l_1.png",
         ]
+        files_right = [
+            "n1-r_0.png",
+            "n1-r_1.png",
+        ]
         self.sequences = {
             Movement.IDLE: Sequence(files_idle),
             Movement.LEFT: Sequence(files_left),
             Movement.TOP: Sequence(files_idle),
-            Movement.RIGHT: Sequence(files_idle),
+            Movement.RIGHT: Sequence(files_right),
             Movement.DOWN: Sequence(files_idle),
         }
 
