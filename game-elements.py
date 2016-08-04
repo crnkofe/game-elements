@@ -2,7 +2,7 @@ import pygame, sys
 import util
 from pygame.locals import *
 
-from animation import animate2d
+from animation import animate2d, idle
 from picking import colorpicker
 
 # SETTINGS
@@ -20,7 +20,7 @@ class GameElements(object):
         pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.init()
         pygame.mixer.init()
-        self.screen = pygame.display.set_mode((width, height))
+        self.screen = pygame.display.set_mode((width, height), DOUBLEBUF)
         pygame.display.set_caption('game-elements')
         self.menu = Menu(self.screen)
         self.elapsed = 0
@@ -36,6 +36,8 @@ class GameElements(object):
             self.current_display = animate2d.Animation(self.screen)
         elif id == util.Displays.COLORPICKER:
             self.current_display = colorpicker.ColorPicker(self.screen)
+        elif id == util.Displays.ANIM_IDLE:
+            self.current_display = idle.Animation(self.screen)
         self.current_display.show = True
 
     def loop(self):
@@ -89,8 +91,9 @@ class Menu(object):
 
     def _choices(self):
         return [
-            Choice(util.Displays.ANIM2D, '2d idle animation', None, self._font(40)),
+            Choice(util.Displays.ANIM2D, '2d animation', None, self._font(40)),
             Choice(util.Displays.COLORPICKER, 'Color picking demo', None, self._font(40)),
+            Choice(util.Displays.ANIM_IDLE, '2d idle animation', None, self._font(40)),
             Choice(None, 'Quit', None, self._font(40)),
         ]
 
