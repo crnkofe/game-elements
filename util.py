@@ -10,6 +10,7 @@ class Displays(object):
     ANIM2D = 2
     COLORPICKER = 3
     ANIM_IDLE = 4
+    ANIM_DEPTH = 5
 
 
 def switch(screen_name):

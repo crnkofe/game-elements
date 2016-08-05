@@ -2,7 +2,7 @@ import pygame, sys
 import util
 from pygame.locals import *
 
-from animation import animate2d, idle
+from animation import animate2d, idle, distance
 from picking import colorpicker
 
 # SETTINGS
@@ -38,6 +38,8 @@ class GameElements(object):
             self.current_display = colorpicker.ColorPicker(self.screen)
         elif id == util.Displays.ANIM_IDLE:
             self.current_display = idle.Animation(self.screen)
+        elif id == util.Displays.ANIM_DEPTH:
+            self.current_display = distance.Distance(self.screen)
         self.current_display.show = True
 
     def loop(self):
@@ -94,6 +96,7 @@ class Menu(object):
             Choice(util.Displays.ANIM2D, '2d animation', None, self._font(40)),
             Choice(util.Displays.COLORPICKER, 'Color picking demo', None, self._font(40)),
             Choice(util.Displays.ANIM_IDLE, '2d idle animation', None, self._font(40)),
+            Choice(util.Displays.ANIM_DEPTH, '2d depth-like scene', None, self._font(40)),
             Choice(None, 'Quit', None, self._font(40)),
         ]
 
