@@ -11,6 +11,7 @@ class Displays(object):
     COLORPICKER = 3
     ANIM_IDLE = 4
     ANIM_DEPTH = 5
+    TRIS = 6
 
 
 def switch(screen_name):

@@ -4,6 +4,8 @@ from pygame.locals import *
 
 from animation import animate2d, idle, distance
 from picking import colorpicker
+from tris import tris
+
 
 # SETTINGS
 width, height = 800, 600
@@ -40,6 +42,8 @@ class GameElements(object):
             self.current_display = idle.Animation(self.screen)
         elif id == util.Displays.ANIM_DEPTH:
             self.current_display = distance.Distance(self.screen)
+        elif id == util.Displays.TRIS:
+            self.current_display = tris.Tris(self.screen)
         self.current_display.show = True
 
     def loop(self):
@@ -97,6 +101,7 @@ class Menu(object):
             Choice(util.Displays.COLORPICKER, 'Color picking demo', None, self._font(40)),
             Choice(util.Displays.ANIM_IDLE, '2d idle animation', None, self._font(40)),
             Choice(util.Displays.ANIM_DEPTH, '2d depth-like scene', None, self._font(40)),
+            Choice(util.Displays.TRIS, 'Tetris clone', None, self._font(40)),
             Choice(None, 'Quit', None, self._font(40)),
         ]
 
