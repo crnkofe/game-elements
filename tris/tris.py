@@ -30,23 +30,28 @@ def generate_block(area_width, area_height):
             LBlock(area_width, area_height),
             ReverseLBlock(area_width, area_height),
             SBlock(area_width, area_height),
+            TriBlock(area_width, area_height),
         )
     )
 
 class BaseBlock(object):
 
-    def __init__(self, area_width, area_height, blocks):
-        self.blocks = blocks
+    def __init__(self, area_width, area_height, block_rotations):
+        self.current_rotation = 0
+        self.block_rotations = block_rotations
         self.previous_pos = None
-        max_y = max(b.y for b in blocks)
+        max_y = max(b.y for b in block_rotations[0])
         self.pos = Point(area_width / 2, area_height - (max_y + 1))
 
+    def blocks(self):
+        return self.block_rotations[self.current_rotation]
+
     def pos_blocks(self):
-        if not self.blocks:
+        if not self.block_rotations:
             return []
         if not self.pos:
             return []
-        return [Point(p.x + self.pos.x, p.y + self.pos.y) for p in self.blocks]
+        return [Point(p.x + self.pos.x, p.y + self.pos.y) for p in self.blocks()]
 
     def move_left(self):
         self.previous_pos = self.pos
@@ -60,6 +65,12 @@ class BaseBlock(object):
         self.previous_pos = self.pos
         self.pos = Point(self.pos.x, self.pos.y - 1)
 
+    def rotate_cw(self):
+        self.current_rotation = (self.current_rotation + 1) % len(self.block_rotations)
+
+    def rotate_ccw(self):
+        self.current_rotation = (self.current_rotation - 1) % len(self.block_rotations)
+
     def reset(self):
         self.pos = self.previous_pos
         self.previous_pos = None
@@ -67,42 +78,73 @@ class BaseBlock(object):
 
 class LineBlock(BaseBlock):
     def __init__(self, area_width, area_height):
-        blocks = [(-1, 0), (0, 0), (1, 0), (2, 0)]
+        blocks = [
+            [(-1, 0), (0, 0), (1, 0), (2, 0)],
+            [(0, -1), (0, 0), (0, 1), (0, 2)],
+        ]
         super(LineBlock, self).__init__(
             area_width, area_height,
-            map(lambda p: Point(p[0], p[1]), blocks))
+            [map(lambda p: Point(p[0], p[1]), rotation) for rotation in blocks])
 
 
 class SquareBlock(BaseBlock):
     def __init__(self, area_width, area_height):
-        blocks = [(0, 0), (1, 0), (0, -1), (1, -1)]
+        blocks = [[(0, 0), (1, 0), (0, -1), (1, -1)]]
         super(SquareBlock, self).__init__(
             area_width, area_height,
-            map(lambda p: Point(p[0], p[1]), blocks))
+            [map(lambda p: Point(p[0], p[1]), rotation) for rotation in blocks])
 
 
 class LBlock(BaseBlock):
     def __init__(self, area_width, area_height):
-        blocks = [(0, 1), (0, 0), (1, 0), (2, 0)]
+        blocks = [
+            [(0, -1), (0, 0), (1, 0), (2, 0)],
+            [(-1, 0), (0, 0), (0, -1), (0, -2)],
+            [(0, 1), (0, 0), (-1, 0), (-2, 0)],
+            [(1, 0), (0, 0), (0, 1), (0, 2)],
+        ]
         super(LBlock, self).__init__(
             area_width, area_height,
-            map(lambda p: Point(p[0], p[1]), blocks))
+            [map(lambda p: Point(p[0], p[1]), rotation) for rotation in blocks])
 
 
 class ReverseLBlock(BaseBlock):
     def __init__(self, area_width, area_height):
-        blocks = [(0, -1), (0, 0), (1, 0), (2, 0)]
+        blocks = [
+            [(0, 1), (0, 0), (1, 0), (2, 0)],
+            [(1, 0), (0, 0), (0, -1), (0, -2)],
+            [(0, -1), (0, 0), (-1, 0), (-2, 0)],
+            [(-1, 0), (0, 0), (0, 1), (0, 2)],
+        ]
         super(ReverseLBlock, self).__init__(
             area_width, area_height,
-            map(lambda p: Point(p[0], p[1]), blocks))
+            [map(lambda p: Point(p[0], p[1]), rotation) for rotation in blocks])
 
 
 class SBlock(BaseBlock):
     def __init__(self, area_width, area_height):
-        blocks = [(0, 1), (-1, 0), (0, -1), (-1, -2)]
+        blocks = [
+            [(0, 0), (1, 1), (1, -1)],
+            [(0, 0), (1, -1), (-1, -1)],
+            [(0, 0), (-1, -1), (-1, 1)],
+            [(0, 0), (-1, 1), (1, 1)],
+        ]
         super(SBlock, self).__init__(
             area_width, area_height,
-            map(lambda p: Point(p[0], p[1]), blocks))
+            [map(lambda p: Point(p[0], p[1]), rotation) for rotation in blocks])
+
+
+class TriBlock(BaseBlock):
+    def __init__(self, area_width, area_height):
+        blocks = [
+            [(0, 1), (0, 0), (1, 0), (-1, 0)],
+            [(1, 0), (0, 0), (0, 1), (0, -1)],
+            [(0, -1), (0, 0), (1, 0), (-1, 0)],
+            [(-1, 0), (0, 0), (0, 1), (0, -1)],
+        ]
+        super(TriBlock, self).__init__(
+            area_width, area_height,
+            [map(lambda p: Point(p[0], p[1]), rotation) for rotation in blocks])
 
 
 class Tris(object):
@@ -114,8 +156,8 @@ class Tris(object):
         self.size = (info.current_w, info.current_h)
 
         # area goes from 0 to n where lower is bottom on the screen
-        self.area_width = 8
-        self.area_height = 10
+        self.area_width = 10
+        self.area_height = 18
         self.area = {i: [TrisBlockState.EMPTY for j in range(self.area_width)] for i in range(self.area_height)}
         self.block = None
         self.score = 0
@@ -128,6 +170,7 @@ class Tris(object):
         self.lines_cleared = 0
 
         self.over_text = self._font(40).render("GAME OVER!", 1, (240, 10, 10))
+        self.score_text = self._font(40).render("Score:", 1, (0, 150, 150))
 
     def _font(self, size):
         if size in self.fonts:
@@ -156,10 +199,18 @@ class Tris(object):
                 self.current_block.move_down()
                 if self.over_edge():
                     self.current_block.reset()
+            if event.key == pygame.K_UP:
+                self.current_block.rotate_cw()
+                if self.over_edge() or self.collision():
+                    self.current_block.rotate_ccw()
             if event.key == pygame.K_SPACE:
-                pass
+                while not self.collision():
+                    self.current_block.move_down()
+                if self.collision():
+                    self.current_block.reset()
 
             self.check_collision()
+            self.line_clear()
 
     def check_collision(self):
         if self.collision():
@@ -186,6 +237,8 @@ class Tris(object):
             return False
         eff_blocks = self.current_block.pos_blocks()
         if any([block.x < 0 or block.x >= self.area_width for block in eff_blocks]):
+            return True
+        if any([block.y >= self.area_height for block in eff_blocks]):
             return True
         return False
 
@@ -232,19 +285,43 @@ class Tris(object):
                 (0, 50, 180),
                 (point.x, point.y, blwidth, blheight))
 
+    def next_full_line(self, area):
+        for row_idx in range(self.area_height):
+            current_row = self.area[row_idx]
+            if all([current_row[i] == TrisBlockState.FULL for i in range(self.area_width)]):
+                return row_idx
+        return None
+
+    def line_clear(self):
+        idx = self.next_full_line(self.area)
+        count_cleared = 0
+        while idx is not None:
+            count_cleared += 1
+            for i in range(idx, self.area_height-1):
+                self.area[i] = self.area[i+1]
+            self.area[self.area_height-1] = [TrisBlockState.EMPTY for j in range(self.area_width)]
+            idx = self.next_full_line(self.area)
+        self.lines_cleared += count_cleared
+        self.score += count_cleared * count_cleared * 10
+
+        self.falling_speed = max(0.1, 1.0 - 0.02 * self.lines_cleared)
+
     def draw(self, elapsed):
         self.elapsed_counter += elapsed
         if self.elapsed_counter > self.falling_speed * 1000:
-            self.elapsed_counter -= 1000
+            self.elapsed_counter = self.elapsed_counter - int(self.falling_speed * 1000)
 
             self.current_block.move_down()
             if self.over_edge():
                 self.current_block.reset()
             self.check_collision()
-
+            self.line_clear()
 
         if self.state == TrisState.RUNNING:
             self.draw_area()
+            self.score_text = self._font(40).render("Score: {}".format(self.score), 1, (0, 150, 150))
+            self.screen.blit(self.score_text, (10, 10))
+
         elif self.state == TrisState.OVER:
             width, height = self.size
             over_width, over_height = self._font(40).size("GAME OVER!")
