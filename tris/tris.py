@@ -2,8 +2,7 @@
 Sample Tetris clone
 """
 
-import math
-import os.path
+import random
 import collections
 import pygame
 from pygame.locals import QUIT
@@ -23,12 +22,24 @@ class TrisState(object):
     OVER = 1
 
 
-class TrisBlock(object):
+def generate_block(area_width, area_height):
+    return random.choice(
+        (
+            LineBlock(area_width, area_height),
+            SquareBlock(area_width, area_height),
+            LBlock(area_width, area_height),
+            ReverseLBlock(area_width, area_height),
+            SBlock(area_width, area_height),
+        )
+    )
 
-    def __init__(self, area_width, area_height):
-        self.blocks = [Point(-1, 0), Point(0, 0), Point(1, 0), Point(2, 0)]
+class BaseBlock(object):
+
+    def __init__(self, area_width, area_height, blocks):
+        self.blocks = blocks
         self.previous_pos = None
-        self.pos = Point(area_width / 2, area_height - 1)
+        max_y = max(b.y for b in blocks)
+        self.pos = Point(area_width / 2, area_height - (max_y + 1))
 
     def pos_blocks(self):
         if not self.blocks:
@@ -54,6 +65,46 @@ class TrisBlock(object):
         self.previous_pos = None
 
 
+class LineBlock(BaseBlock):
+    def __init__(self, area_width, area_height):
+        blocks = [(-1, 0), (0, 0), (1, 0), (2, 0)]
+        super(LineBlock, self).__init__(
+            area_width, area_height,
+            map(lambda p: Point(p[0], p[1]), blocks))
+
+
+class SquareBlock(BaseBlock):
+    def __init__(self, area_width, area_height):
+        blocks = [(0, 0), (1, 0), (0, -1), (1, -1)]
+        super(SquareBlock, self).__init__(
+            area_width, area_height,
+            map(lambda p: Point(p[0], p[1]), blocks))
+
+
+class LBlock(BaseBlock):
+    def __init__(self, area_width, area_height):
+        blocks = [(0, 1), (0, 0), (1, 0), (2, 0)]
+        super(LBlock, self).__init__(
+            area_width, area_height,
+            map(lambda p: Point(p[0], p[1]), blocks))
+
+
+class ReverseLBlock(BaseBlock):
+    def __init__(self, area_width, area_height):
+        blocks = [(0, -1), (0, 0), (1, 0), (2, 0)]
+        super(ReverseLBlock, self).__init__(
+            area_width, area_height,
+            map(lambda p: Point(p[0], p[1]), blocks))
+
+
+class SBlock(BaseBlock):
+    def __init__(self, area_width, area_height):
+        blocks = [(0, 1), (-1, 0), (0, -1), (-1, -2)]
+        super(SBlock, self).__init__(
+            area_width, area_height,
+            map(lambda p: Point(p[0], p[1]), blocks))
+
+
 class Tris(object):
 
     def __init__(self, screen):
@@ -69,7 +120,7 @@ class Tris(object):
         self.block = None
         self.score = 0
         self.state = TrisState.RUNNING
-        self.current_block = TrisBlock(self.area_width, self.area_height)
+        self.current_block = generate_block(self.area_width, self.area_height)
         self.fonts = {}
 
         self.elapsed_counter = 0
@@ -124,7 +175,7 @@ class Tris(object):
                     if block.x < len(self.area[block.y]):
                         self.area[block.y][block.x] = TrisBlockState.FULL
 
-            self.current_block = TrisBlock(self.area_width, self.area_height)
+            self.current_block = generate_block(self.area_width, self.area_height)
             if self.collision():
                 self.state = TrisState.OVER
                 return
