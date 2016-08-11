@@ -115,6 +115,18 @@ class TopDown(object):
             if event.key == pygame.K_ESCAPE:
                 util.switch(util.Displays.MENU)
 
+            if event.key == pygame.K_LEFT:
+                self.pc.move(-1, 0)
+            if event.key == pygame.K_RIGHT:
+                self.pc.move(1, 0)
+            if event.key == pygame.K_DOWN:
+                self.pc.move(0, 1)
+            if event.key == pygame.K_UP:
+                self.pc.move(0, -1)
+
+            if self.pc.out_of_bounds(self.area()):
+                self.pc.reset()
+
     def area(self):
         return self.areas[self.current_area]
 

@@ -15,20 +15,20 @@ class Player(object):
         pygame.draw.rect(
             screen,
             (250, 250, 250),
-            (bl.x + self.pos.y * effblock.w,
-             bl.y + self.pos.x * effblock.h,
+            (bl.x + self.pos.x * effblock.w,
+             bl.y + self.pos.y * effblock.h,
              effblock.w * 0.9,
              effblock.h * 0.9)
         )
 
     def move(self, x, y):
         self.previous = self.pos
-        self.pos = Point(x, y)
+        self.pos = Point(self.pos.x + x, self.pos.y + y)
 
     def out_of_bounds(self, area):
-        if self.pos.x < 0 or self.pos.x >= area.size.width:
+        if self.pos.x < 0 or self.pos.x >= area.size.w:
             return True
-        if self.pos.y < 0 or self.pos.y >= area.size.height:
+        if self.pos.y < 0 or self.pos.y >= area.size.h:
             return True
         return False
 
