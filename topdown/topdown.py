@@ -7,6 +7,7 @@ import random
 import pygame
 import collections
 from pygame.locals import QUIT
+import pc
 import util
 
 
@@ -35,16 +36,24 @@ class Area(object):
                 else:
                     self.area[row_idx][col_idx] = Tile(Point(row_idx, col_idx))
 
-    def draw(self):
-        effw = self.window_size.w * 0.7
-        effh = self.window_size.h * 0.9
+    def eff_size(self):
+        return Size(self.window_size.w * 0.7, self.window_size.h * 0.9)
 
-        effblock = Size(
+    def eff_block(self):
+        effw, effh = self.eff_size().w, self.eff_size().h
+        return Size(
             (effw / self.size.w),
             (effh / self.size.h)
         )
 
-        bl = Point(self.window_size.w / 2 - effw / 2, self.window_size.h / 2 - effh / 2)
+    def bottom_left(self):
+        effsize = self.eff_size()
+        return Point(self.window_size.w / 2 - effsize.w / 2, self.window_size.h / 2 - effsize.h / 2)
+
+
+    def draw(self):
+        effblock = self.eff_block()
+        bl = self.bottom_left()
 
         for row_idx in range(self.size.h):
             for col_idx in range(self.size.w):
@@ -96,6 +105,7 @@ class TopDown(object):
             "right": Area(screen, Size(10, 10)),
             "top": Area(screen, Size(10, 10)),
         }
+        self.pc = pc.Player(Point(10, 10))
         self.current_area = "center"
 
     def handle_event(self, event):
@@ -105,8 +115,12 @@ class TopDown(object):
             if event.key == pygame.K_ESCAPE:
                 util.switch(util.Displays.MENU)
 
+    def area(self):
+        return self.areas[self.current_area]
+
     def draw_area(self):
-        self.areas[self.current_area].draw()
+        self.area().draw()
 
     def draw(self, elapsed):
         self.draw_area()
+        self.pc.draw(self.screen, self.area().bottom_left(), self.area().eff_block())
