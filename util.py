@@ -12,6 +12,7 @@ class Displays(object):
     ANIM_IDLE = 4
     ANIM_DEPTH = 5
     TRIS = 6
+    TOPDOWN = 7
 
 
 def switch(screen_name):
