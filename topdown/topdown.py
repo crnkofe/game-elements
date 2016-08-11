@@ -14,13 +14,6 @@ Point = collections.namedtuple('Point', ['x', 'y'])
 Size = collections.namedtuple('Size', ['w', 'h'])
 
 
-class Walls(object):
-    LEFT = 1
-    TOP = 2
-    RIGHT = 4
-    BOTTOM = 8
-
-
 class Area(object):
     """
     Rectangular set of tiles
@@ -35,8 +28,10 @@ class Area(object):
         for row_idx in range(size.h):
             self.area[row_idx] = {}
             for col_idx in range(size.w):
-                if col_idx == 0 and (walls & Walls.LEFT):
-                    self.area[row_idx][col_idx] = Tile(Point(row_idx, col_idx))
+                if col_idx == 0 or col_idx == (size.w - 1):
+                    self.area[row_idx][col_idx] = Wall(Point(row_idx, col_idx))
+                elif row_idx == 0 or row_idx == (size.h - 1):
+                    self.area[row_idx][col_idx] = Wall(Point(row_idx, col_idx))
                 else:
                     self.area[row_idx][col_idx] = Tile(Point(row_idx, col_idx))
 
