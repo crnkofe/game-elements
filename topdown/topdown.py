@@ -2,12 +2,11 @@
 Sample top down zelda-like mini game
 """
 
-import os
-import random
 import pygame
 import collections
 from pygame.locals import QUIT
 import pc
+import trigger
 import util
 
 
@@ -24,6 +23,7 @@ class Area(object):
         self.screen = screen
         self.area = {}
         self.size = size
+        self.doors = collections.defaultdict()
         info = pygame.display.Info()
         self.window_size = Size(info.current_w, info.current_h)
         for row_idx in range(size.h):
@@ -36,10 +36,14 @@ class Area(object):
                 else:
                     self.area[row_idx][col_idx] = Tile(Point(col_idx, row_idx))
 
-    def make_doors(self, from_loc, to_loc):
+    def make_door(self, from_loc, to_loc, name):
+        door_tiles = []
         for x in range(from_loc.x, to_loc.x + 1):
             for y in range(from_loc.y, to_loc.y + 1):
-                self.area[y][x] = Door(Point(x, y))
+                door = Door(Point(x, y))
+                door_tiles.append(door)
+                self.area[y][x] = door
+        self.doors[name] = door_tiles
 
     def passable(self, pos):
         if not pos.y in self.area:
@@ -60,7 +64,9 @@ class Area(object):
 
     def bottom_left(self):
         effsize = self.eff_size()
-        return Point(self.window_size.w / 2 - effsize.w / 2, self.window_size.h / 2 - effsize.h / 2)
+        return Point(
+            self.window_size.w / 2 - effsize.w / 2,
+            self.window_size.h / 2 - effsize.h / 2)
 
     def draw(self):
         effblock = self.eff_block()
@@ -79,6 +85,7 @@ class Area(object):
                         effblock.h * 0.9
                     )
                 )
+
 
 class Tile(object):
     def __init__(self, loc):
@@ -118,13 +125,16 @@ class Door(Tile):
 
     def draw(self, screen, offset, size):
         if self.passable():
-            color = (120, 120, 120)
+            color = (20, 150, 20)
         else:
             color = (192, 127, 0)
         pygame.draw.rect(
             screen, color,
             (offset.x, offset.y, size.w, size.h)
         )
+
+    def toggle(self):
+        self.opened = not self.opened
 
     def passable(self):
         return self.opened
@@ -135,6 +145,7 @@ class TopDown(object):
     def __init__(self, screen):
         self.screen = screen
         self.shown = False
+        self.triggers = {}
         self.areas = {
             "left": self.left_area(),
             "bot": self.bot_area(),
@@ -147,31 +158,52 @@ class TopDown(object):
 
     def left_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_doors(Point(9, 3), Point(9, 6))
+        ret.make_door(Point(9, 3), Point(9, 6), "center")
         return ret
 
     def right_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_doors(Point(0, 3), Point(0, 6))
+        ret.make_door(Point(0, 3), Point(0, 6), "center")
         return ret
 
     def bot_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_doors(Point(3, 0), Point(6, 0))
+        ret.make_door(Point(3, 0), Point(6, 0), "center")
         return ret
 
     def top_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_doors(Point(3, 9), Point(6, 9))
+        ret.make_door(Point(3, 9), Point(6, 9), "center")
         return ret
 
     def central_area(self):
         ret = Area(self.screen, Size(20, 20))
-        ret.make_doors(Point(8, 0), Point(11, 0))
-        ret.make_doors(Point(8, 19), Point(11, 19))
-        ret.make_doors(Point(0, 8), Point(0, 11))
-        ret.make_doors(Point(19, 8), Point(19, 11))
+        ret.make_door(Point(8, 0), Point(11, 0), "top")
+        ret.make_door(Point(8, 19), Point(11, 19), "bottom")
+        ret.make_door(Point(0, 8), Point(0, 11), "left")
+        ret.make_door(Point(19, 8), Point(19, 11), "right")
+
+        self.add_trigger(Point(8, 9),
+            trigger.MapTrigger(
+                Point(8, 9),
+                trigger.Toggle(ret.doors['left']).toggle
+            )
+        )
+
+        self.add_trigger(Point(12, 11),
+            trigger.MapTrigger(
+                Point(12, 11),
+                trigger.Toggle(ret.doors['right']).toggle
+            )
+        )
         return ret
+
+    def add_trigger(self, loc, trigger):
+        if loc not in self.triggers:
+            self.triggers[loc] = []
+
+        self.triggers[loc].append(trigger)
+
 
     def handle_event(self, event):
         if event.type == QUIT:
@@ -179,6 +211,8 @@ class TopDown(object):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 util.switch(util.Displays.MENU)
+
+            previous = self.pc.pos
 
             if event.key == pygame.K_LEFT:
                 self.pc.move(-1, 0)
@@ -189,9 +223,18 @@ class TopDown(object):
             if event.key == pygame.K_UP:
                 self.pc.move(0, -1)
 
-            if not self.area().passable(self.pc.pos) or\
-                    self.pc.out_of_bounds(self.area()):
-                self.pc.reset()
+            if event.key in (pygame.K_LEFT,
+                             pygame.K_RIGHT,
+                             pygame.K_DOWN,
+                             pygame.K_UP):
+                if not self.area().passable(self.pc.pos) or\
+                        self.pc.out_of_bounds(self.area()):
+                    self.pc.reset()
+                else:
+                    for trig in self.triggers.get(previous, []):
+                        trig.exit()
+                    for trig in self.triggers.get(self.pc.pos, []):
+                        trig.enter()
 
     def area(self):
         return self.areas[self.current_area]
@@ -201,4 +244,25 @@ class TopDown(object):
 
     def draw(self, elapsed):
         self.draw_area()
-        self.pc.draw(self.screen, self.area().bottom_left(), self.area().eff_block())
+        self.pc.draw(
+            self.screen,
+            self.area().bottom_left(),
+            self.area().eff_block()
+        )
+
+        bl = self.area().bottom_left()
+        effblock = self.area().eff_block()
+        for loc, trig in self.triggers.iteritems():
+            offset = Point(
+                bl.x + loc.x * effblock.w,
+                bl.y + loc.y * effblock.h
+            )
+            size = Size(
+                effblock.w * 0.5,
+                effblock.h * 0.5
+            )
+            pygame.draw.rect(
+                self.screen,
+                (150, 20, 20),
+                (offset.x, offset.y, size.w, size.h)
+            )
