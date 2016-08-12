@@ -7,6 +7,7 @@ import collections
 from pygame.locals import QUIT
 import pc
 import trigger
+import storyboard
 import util
 
 
@@ -26,6 +27,7 @@ class Area(object):
         self.doors = collections.defaultdict()
         info = pygame.display.Info()
         self.window_size = Size(info.current_w, info.current_h)
+        self.triggers = {}
         for row_idx in range(size.h):
             self.area[row_idx] = {}
             for col_idx in range(size.w):
@@ -44,6 +46,13 @@ class Area(object):
                 door_tiles.append(door)
                 self.area[y][x] = door
         self.doors[name] = door_tiles
+
+    def add_trigger(self, loc, trigger):
+        if loc not in self.triggers:
+            self.triggers[loc] = []
+
+        self.triggers[loc].append(trigger)
+
 
     def passable(self, pos):
         if not pos.y in self.area:
@@ -145,7 +154,6 @@ class TopDown(object):
     def __init__(self, screen):
         self.screen = screen
         self.shown = False
-        self.triggers = {}
         self.areas = {
             "left": self.left_area(),
             "bot": self.bot_area(),
@@ -153,8 +161,11 @@ class TopDown(object):
             "right": self.right_area(),
             "top": self.top_area(),
         }
+
+        self.add_triggers()
         self.pc = pc.Player(Point(10, 10))
         self.current_area = "center"
+        self.storyboard_stack = []
 
     def left_area(self):
         ret = Area(self.screen, Size(10, 10))
@@ -182,28 +193,37 @@ class TopDown(object):
         ret.make_door(Point(8, 19), Point(11, 19), "bottom")
         ret.make_door(Point(0, 8), Point(0, 11), "left")
         ret.make_door(Point(19, 8), Point(19, 11), "right")
-
-        self.add_trigger(Point(8, 9),
-            trigger.MapTrigger(
-                Point(8, 9),
-                trigger.Toggle(ret.doors['left']).toggle
-            )
-        )
-
-        self.add_trigger(Point(12, 11),
-            trigger.MapTrigger(
-                Point(12, 11),
-                trigger.Toggle(ret.doors['right']).toggle
-            )
-        )
         return ret
 
-    def add_trigger(self, loc, trigger):
-        if loc not in self.triggers:
-            self.triggers[loc] = []
+    def add_triggers(self):
+        center = self.areas['center']
+        for door in center.doors['left']:
+            center.add_trigger(door.loc,
+                trigger.ShowTransition(
+                    door.loc,
+                    self,
+                    "left",
+                    storyboard.AreaTransition(
+                        center,
+                        self.areas['left'],
+                        Point(-1, 0)
+                    )
+                )
+            )
 
-        self.triggers[loc].append(trigger)
+        center.add_trigger(Point(8, 9),
+            trigger.MapTrigger(
+                Point(8, 9),
+                trigger.Toggle(center.doors['left']).toggle
+            )
+        )
 
+        center.add_trigger(Point(12, 11),
+            trigger.MapTrigger(
+                Point(12, 11),
+                trigger.Toggle(center.doors['right']).toggle
+            )
+        )
 
     def handle_event(self, event):
         if event.type == QUIT:
@@ -211,6 +231,9 @@ class TopDown(object):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 util.switch(util.Displays.MENU)
+
+            if len(self.storyboard_stack) > 0:
+                return
 
             previous = self.pc.pos
 
@@ -231,9 +254,9 @@ class TopDown(object):
                         self.pc.out_of_bounds(self.area()):
                     self.pc.reset()
                 else:
-                    for trig in self.triggers.get(previous, []):
+                    for trig in self.area().triggers.get(previous, []):
                         trig.exit()
-                    for trig in self.triggers.get(self.pc.pos, []):
+                    for trig in self.area().triggers.get(self.pc.pos, []):
                         trig.enter()
 
     def area(self):
@@ -243,6 +266,13 @@ class TopDown(object):
         self.area().draw()
 
     def draw(self, elapsed):
+        if len(self.storyboard_stack) > 0:
+            if self.storyboard_stack[-1].finished:
+                self.storyboard_stack.pop()
+            else:
+                self.storyboard_stack[-1].draw(elapsed)
+                return
+
         self.draw_area()
         self.pc.draw(
             self.screen,
@@ -252,7 +282,7 @@ class TopDown(object):
 
         bl = self.area().bottom_left()
         effblock = self.area().eff_block()
-        for loc, trig in self.triggers.iteritems():
+        for loc, trig in self.area().triggers.iteritems():
             offset = Point(
                 bl.x + loc.x * effblock.w,
                 bl.y + loc.y * effblock.h
