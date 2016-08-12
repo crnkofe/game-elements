@@ -180,7 +180,7 @@ class TopDown(object):
         }
 
         self.add_triggers()
-        self.pc = pc.Player(Point(10, 10))
+        self.pc = pc.Player(Point(4, 4))
         self.current_area = "center"
         self.storyboard_stack = []
 
@@ -205,11 +205,11 @@ class TopDown(object):
         return ret
 
     def central_area(self):
-        ret = Area(self.screen, Size(20, 20))
-        ret.make_door(Point(8, 0), Point(11, 0), Point(3, 0), "top")
-        ret.make_door(Point(8, 19), Point(11, 19), Point(3, 9), "bottom")
-        ret.make_door(Point(0, 8), Point(0, 11), Point(9, 3), "left")
-        ret.make_door(Point(19, 8), Point(19, 11), Point(0, 3), "right")
+        ret = Area(self.screen, Size(10, 10))
+        ret.make_door(Point(3, 0), Point(6, 0), Point(3, 0), "top")
+        ret.make_door(Point(3, 9), Point(6, 9), Point(3, 9), "bottom")
+        ret.make_door(Point(0, 3), Point(0, 6), Point(9, 3), "left")
+        ret.make_door(Point(9, 3), Point(9, 6), Point(0, 3), "right")
         return ret
 
     def add_triggers(self):
@@ -241,15 +241,15 @@ class TopDown(object):
                     )
                 )
             )
-        center.add_trigger(Point(8, 9),
+        center.add_trigger(Point(3, 4),
             trigger.MapTrigger(
-                Point(8, 9),
+                Point(3, 4),
                 trigger.Toggle(center.doors['left']).toggle
             )
         )
-        center.add_trigger(Point(12, 11),
+        center.add_trigger(Point(5, 6),
             trigger.MapTrigger(
-                Point(12, 11),
+                Point(5, 6),
                 trigger.Toggle(center.doors['right']).toggle
             )
         )
