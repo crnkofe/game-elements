@@ -1,3 +1,6 @@
+import collections
+
+Point = collections.namedtuple('Point', ['x', 'y'])
 
 
 class AreaTransition(object):
@@ -6,6 +9,9 @@ class AreaTransition(object):
         self.area1 = area1
         self.area2 = area2
         self.direction = direction
+        self.reset()
+
+    def reset(self):
         self.finished = False
         # total elapsed since beginning of animation
         self.total_elapsed = 0
@@ -17,3 +23,7 @@ class AreaTransition(object):
             self.finished = True
             return
         self.total_elapsed += elapsed
+        percent_elapsed = float(self.total_elapsed) / self.length
+
+        ar1_sz = self.area1.eff_size()
+        self.area1.draw(offset=Point(ar1_sz.w * percent_elapsed, 0))

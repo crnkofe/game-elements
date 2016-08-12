@@ -25,6 +25,8 @@ class ShowTransition(MapTrigger):
         self.storyboard = storyboard
 
     def enter(self):
+        pcpos = self.game.pc.pos
+        self.game.pc.pos = self.game.area().area[pcpos.y][pcpos.x].dest_loc
         self.game.storyboard_stack.append(self.storyboard)
         self.game.current_area = self.to
 

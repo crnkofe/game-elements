@@ -38,11 +38,15 @@ class Area(object):
                 else:
                     self.area[row_idx][col_idx] = Tile(Point(col_idx, row_idx))
 
-    def make_door(self, from_loc, to_loc, name):
+    def make_door(self, from_loc, to_loc, from_dest_loc, name, opened=False):
         door_tiles = []
         for x in range(from_loc.x, to_loc.x + 1):
             for y in range(from_loc.y, to_loc.y + 1):
-                door = Door(Point(x, y))
+                door = Door(Point(x, y), opened=opened)
+                door.dest_loc = Point(
+                    from_dest_loc.x + (x - from_loc.x),
+                    from_dest_loc.y + (y - from_loc.y)
+                )
                 door_tiles.append(door)
                 self.area[y][x] = door
         self.doors[name] = door_tiles
@@ -52,7 +56,6 @@ class Area(object):
             self.triggers[loc] = []
 
         self.triggers[loc].append(trigger)
-
 
     def passable(self, pos):
         if not pos.y in self.area:
@@ -77,22 +80,36 @@ class Area(object):
             self.window_size.w / 2 - effsize.w / 2,
             self.window_size.h / 2 - effsize.h / 2)
 
-    def draw(self):
+    def draw(self, offset=Point(0, 0), limit_bl=None, limit_tr=None):
         effblock = self.eff_block()
         bl = self.bottom_left()
 
         for row_idx in range(self.size.h):
             for col_idx in range(self.size.w):
+                pt = Point(
+                    bl.x + col_idx * effblock.w,
+                    bl.y + row_idx * effblock.h
+                )
+                sz = Size(
+                    effblock.w * 0.9,
+                    effblock.h * 0.9
+                )
+
+                if limit_bl:
+                    if pt.x < limit_bl.x:
+                        continue
+                    if pt.y < limit_bl.y:
+                        continue
+                if limit_tr:
+                    if (pt.x + sz.w) > limit_tr.x:
+                        continue
+                    if (pt.y + sz.h) > limit_tr.y:
+                        continue
+
+                offpt = Point(pt.x + offset.x, pt.y + offset.y)
+
                 self.area[row_idx][col_idx].draw(
-                    self.screen,
-                    Point(
-                        bl.x + col_idx * effblock.w,
-                        bl.y + row_idx * effblock.h
-                    ),
-                    Size(
-                        effblock.w * 0.9,
-                        effblock.h * 0.9
-                    )
+                    self.screen, offpt, sz
                 )
 
 
@@ -128,9 +145,9 @@ class Wall(Tile):
 
 class Door(Tile):
 
-    def __init__(self, loc):
+    def __init__(self, loc, opened=False):
         super(Door, self).__init__(loc)
-        self.opened = False
+        self.opened = opened
 
     def draw(self, screen, offset, size):
         if self.passable():
@@ -169,34 +186,35 @@ class TopDown(object):
 
     def left_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_door(Point(9, 3), Point(9, 6), "center")
+        ret.make_door(Point(9, 3), Point(9, 6), Point(0, 8),  "center", opened=True)
         return ret
 
     def right_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_door(Point(0, 3), Point(0, 6), "center")
+        ret.make_door(Point(0, 3), Point(0, 6), Point(19, 8), "center")
         return ret
 
     def bot_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_door(Point(3, 0), Point(6, 0), "center")
+        ret.make_door(Point(3, 0), Point(6, 0), Point(8, 19), "center")
         return ret
 
     def top_area(self):
         ret = Area(self.screen, Size(10, 10))
-        ret.make_door(Point(3, 9), Point(6, 9), "center")
+        ret.make_door(Point(3, 9), Point(6, 9), Point(8, 0), "center")
         return ret
 
     def central_area(self):
         ret = Area(self.screen, Size(20, 20))
-        ret.make_door(Point(8, 0), Point(11, 0), "top")
-        ret.make_door(Point(8, 19), Point(11, 19), "bottom")
-        ret.make_door(Point(0, 8), Point(0, 11), "left")
-        ret.make_door(Point(19, 8), Point(19, 11), "right")
+        ret.make_door(Point(8, 0), Point(11, 0), Point(3, 0), "top")
+        ret.make_door(Point(8, 19), Point(11, 19), Point(3, 9), "bottom")
+        ret.make_door(Point(0, 8), Point(0, 11), Point(9, 3), "left")
+        ret.make_door(Point(19, 8), Point(19, 11), Point(0, 3), "right")
         return ret
 
     def add_triggers(self):
         center = self.areas['center']
+        left = self.areas['left']
         for door in center.doors['left']:
             center.add_trigger(door.loc,
                 trigger.ShowTransition(
@@ -210,14 +228,25 @@ class TopDown(object):
                     )
                 )
             )
-
+        for door in left.doors['center']:
+            left.add_trigger(door.loc,
+                trigger.ShowTransition(
+                    door.loc,
+                    self,
+                    "center",
+                    storyboard.AreaTransition(
+                        left,
+                        self.areas['center'],
+                        Point(1, 0)
+                    )
+                )
+            )
         center.add_trigger(Point(8, 9),
             trigger.MapTrigger(
                 Point(8, 9),
                 trigger.Toggle(center.doors['left']).toggle
             )
         )
-
         center.add_trigger(Point(12, 11),
             trigger.MapTrigger(
                 Point(12, 11),
@@ -268,7 +297,8 @@ class TopDown(object):
     def draw(self, elapsed):
         if len(self.storyboard_stack) > 0:
             if self.storyboard_stack[-1].finished:
-                self.storyboard_stack.pop()
+                last = self.storyboard_stack.pop()
+                last.reset()
             else:
                 self.storyboard_stack[-1].draw(elapsed)
                 return
